@@ -28,6 +28,7 @@ const DASHBOARD_HTML = `<!doctype html>
   .sub { color: #666; margin-top: 0; }
   form { display: grid; gap: 0.75rem; border: 1px solid #ccc4; border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
   label { display: grid; gap: 0.25rem; font-size: 0.9rem; }
+  .hint { color: #666; font-size: 0.8rem; font-weight: 400; }
   input, select { padding: 0.5rem; font-size: 1rem; border-radius: 6px; border: 1px solid #999; }
   button { padding: 0.6rem 1rem; font-size: 1rem; border-radius: 6px; border: none; background: #2563eb; color: white; cursor: pointer; }
   button:hover { background: #1d4ed8; }
@@ -59,6 +60,11 @@ const DASHBOARD_HTML = `<!doctype html>
       <input id="scheduledAt" type="datetime-local" required />
     </label>
     <label>
+      Timezone
+      <select id="timezone" required></select>
+      <span class="hint">"Merge at" is interpreted in this timezone. Defaults to your browser's — change it if you mean a different one.</span>
+    </label>
+    <label>
       Your GitHub username
       <input id="requestedBy" type="text" placeholder="octocat" required />
     </label>
@@ -77,7 +83,7 @@ const DASHBOARD_HTML = `<!doctype html>
   <h2>Scheduled merges</h2>
   <table>
     <thead>
-      <tr><th>PR</th><th>Merge at (local)</th><th>Status</th><th>Note</th><th></th></tr>
+      <tr><th>PR</th><th>Merge at</th><th>Status</th><th>Note</th><th></th></tr>
     </thead>
     <tbody id="rows"></tbody>
   </table>
@@ -86,6 +92,57 @@ const DASHBOARD_HTML = `<!doctype html>
     const form = document.getElementById('schedule-form');
     const message = document.getElementById('message');
     const rows = document.getElementById('rows');
+    const timezoneSelect = document.getElementById('timezone');
+
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const storedTimezone = localStorage.getItem('prshift-timezone');
+
+    const COMMON_TIMEZONES = [
+      'UTC', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
+      'America/Sao_Paulo', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Moscow',
+      'Africa/Cairo', 'Asia/Jerusalem', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok',
+      'Asia/Shanghai', 'Asia/Tokyo', 'Asia/Seoul', 'Australia/Sydney', 'Pacific/Auckland',
+    ];
+    const zones = Array.from(new Set([
+      browserTimezone,
+      ...(typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : COMMON_TIMEZONES),
+    ])).sort();
+
+    function offsetLabel(zone) {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' }).formatToParts(new Date());
+      return parts.find(p => p.type === 'timeZoneName')?.value ?? '';
+    }
+
+    timezoneSelect.innerHTML = zones.map(z => \`<option value="\${z}">\${z} (\${offsetLabel(z)})</option>\`).join('');
+    timezoneSelect.value = storedTimezone && zones.includes(storedTimezone) ? storedTimezone : browserTimezone;
+    timezoneSelect.addEventListener('change', () => {
+      localStorage.setItem('prshift-timezone', timezoneSelect.value);
+      refresh();
+    });
+
+    // Converts a "YYYY-MM-DDTHH:MM" wall-clock string, interpreted in the given zone, to a UTC Date.
+    function zonedTimeToUtc(localStr, zone) {
+      const [datePart, timePart] = localStr.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hour, minute] = timePart.split(':').map(Number);
+      const guessUtcMs = Date.UTC(year, month - 1, day, hour, minute);
+
+      const fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: zone, hourCycle: 'h23',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+      });
+      const parts = fmt.formatToParts(new Date(guessUtcMs)).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+      const asIfUtcMs = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+      const offsetMs = asIfUtcMs - guessUtcMs;
+      return new Date(guessUtcMs - offsetMs);
+    }
+
+    function formatInZone(isoString, zone) {
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: zone, dateStyle: 'medium', timeStyle: 'short',
+      }).format(new Date(isoString)) + ' ' + offsetLabel(zone);
+    }
 
     function parsePrUrl(url) {
       try {
@@ -106,7 +163,7 @@ const DASHBOARD_HTML = `<!doctype html>
       rows.innerHTML = schedules.map(s => \`
         <tr>
           <td><a href="https://github.com/\${s.owner}/\${s.repo}/pull/\${s.pullNumber}" target="_blank">\${s.owner}/\${s.repo}#\${s.pullNumber}</a></td>
-          <td>\${new Date(s.scheduledAt).toLocaleString()}</td>
+          <td>\${formatInZone(s.scheduledAt, timezoneSelect.value)}</td>
           <td><span class="status status-\${s.status}">\${s.status}</span></td>
           <td>\${s.note ?? ''}</td>
           <td>\${(s.status === 'pending' || s.status === 'blocked') ? \`<button class="secondary" data-id="\${s.id}">Cancel</button>\` : ''}</td>
@@ -139,7 +196,7 @@ const DASHBOARD_HTML = `<!doctype html>
         owner: parsed.owner,
         repo: parsed.repo,
         pullNumber: parsed.pullNumber,
-        scheduledAt: new Date(scheduledAtLocal).toISOString(),
+        scheduledAt: zonedTimeToUtc(scheduledAtLocal, timezoneSelect.value).toISOString(),
         mergeMethod: document.getElementById('mergeMethod').value,
         requestedBy: document.getElementById('requestedBy').value.trim(),
       };
