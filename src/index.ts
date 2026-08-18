@@ -1,4 +1,6 @@
 import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import { loadConfig } from "./config.js";
 import { ScheduleStore } from "./db.js";
@@ -33,7 +35,10 @@ app.use(
   }),
 );
 
+const assetsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "assets");
+
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
+app.use("/assets", express.static(assetsDir));
 app.use(dashboardRouter());
 app.use(schedulesRouter(store));
 app.use(webhookRouter({ store, github, webhookSecret: config.webhookSecret }));

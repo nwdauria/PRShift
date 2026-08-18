@@ -9,62 +9,21 @@ export function dashboardRouter(): Router {
   return router;
 }
 
-/** Icon-only mark (git branch + clock), used for the favicon and the header lockup. */
-const LOGO_MARK_SVG = `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="prshift-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563eb" />
-      <stop offset="100%" stop-color="#9333ea" />
-    </linearGradient>
-  </defs>
-  <path d="M20 25 L50 50 L20 75" fill="none" stroke="#0f172a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="20" cy="25" r="9" fill="#fff" stroke="#0f172a" stroke-width="7" />
-  <circle cx="20" cy="75" r="9" fill="#fff" stroke="#0f172a" stroke-width="7" />
-  <line x1="50" y1="50" x2="88" y2="50" stroke="url(#prshift-grad)" stroke-width="7" stroke-linecap="round" />
-  <path d="M78 38 L94 50 L78 62" fill="none" stroke="url(#prshift-grad)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="75" cy="50" r="24" fill="none" stroke="url(#prshift-grad)" stroke-width="6" />
-  <line x1="75" y1="20" x2="75" y2="27" stroke="url(#prshift-grad)" stroke-width="5" stroke-linecap="round" />
-  <line x1="75" y1="73" x2="75" y2="80" stroke="url(#prshift-grad)" stroke-width="5" stroke-linecap="round" />
-  <line x1="102" y1="50" x2="109" y2="50" stroke="url(#prshift-grad)" stroke-width="5" stroke-linecap="round" />
-</svg>`;
-
-/** Full wordmark lockup (mark + "PRShift" text) used in the dashboard header. */
-const LOGO_LOCKUP_SVG = `<svg viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PRShift">
-  <defs>
-    <linearGradient id="prshift-grad-lockup" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563eb" />
-      <stop offset="100%" stop-color="#9333ea" />
-    </linearGradient>
-  </defs>
-  <g transform="translate(0,0)">
-    <path d="M20 25 L50 50 L20 75" fill="none" stroke="#0f172a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-    <circle cx="20" cy="25" r="9" fill="#fff" stroke="#0f172a" stroke-width="7" />
-    <circle cx="20" cy="75" r="9" fill="#fff" stroke="#0f172a" stroke-width="7" />
-    <line x1="50" y1="50" x2="88" y2="50" stroke="url(#prshift-grad-lockup)" stroke-width="7" stroke-linecap="round" />
-    <path d="M78 38 L94 50 L78 62" fill="none" stroke="url(#prshift-grad-lockup)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-    <circle cx="75" cy="50" r="24" fill="none" stroke="url(#prshift-grad-lockup)" stroke-width="6" />
-    <line x1="75" y1="20" x2="75" y2="27" stroke="url(#prshift-grad-lockup)" stroke-width="5" stroke-linecap="round" />
-    <line x1="75" y1="73" x2="75" y2="80" stroke="url(#prshift-grad-lockup)" stroke-width="5" stroke-linecap="round" />
-    <line x1="102" y1="50" x2="109" y2="50" stroke="url(#prshift-grad-lockup)" stroke-width="5" stroke-linecap="round" />
-  </g>
-  <text x="130" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="800" fill="#0f172a">PR</text>
-  <text x="205" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="800" font-style="italic" fill="url(#prshift-grad-lockup)">Shift</text>
-</svg>`;
-
-const LOGO_FAVICON_DATA_URI = `data:image/svg+xml,${encodeURIComponent(LOGO_MARK_SVG)}`;
-
 const DASHBOARD_HTML = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>PRShift</title>
-<link rel="icon" type="image/svg+xml" href="${LOGO_FAVICON_DATA_URI}" />
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon-180.png" />
 <style>
   :root { color-scheme: light dark; }
   body { font-family: system-ui, -apple-system, sans-serif; max-width: 780px; margin: 2rem auto; padding: 0 1rem; }
   .brand { display: flex; align-items: center; margin-bottom: 0.25rem; }
-  .brand svg { height: 2.5rem; width: auto; }
+  .brand img { height: 2.5rem; width: auto; }
   h1 { margin-bottom: 0.25rem; }
   .sub { color: #666; margin-top: 0; }
   form { display: grid; gap: 0.75rem; border: 1px solid #ccc4; border-radius: 8px; padding: 1.25rem; margin: 1.5rem 0; }
@@ -87,7 +46,7 @@ const DASHBOARD_HTML = `<!doctype html>
 </style>
 </head>
 <body>
-  <div class="brand">${LOGO_LOCKUP_SVG}</div>
+  <div class="brand"><img src="/assets/prshift-lockup.png" alt="PRShift" /></div>
   <p class="sub">Schedule when a pull request actually gets merged.</p>
 
   <form id="schedule-form">
