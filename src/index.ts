@@ -5,6 +5,7 @@ import { GitHubClient } from "./github.js";
 import { Scheduler } from "./scheduler.js";
 import { schedulesRouter } from "./routes/schedules.js";
 import { webhookRouter } from "./routes/webhook.js";
+import { dashboardRouter } from "./routes/dashboard.js";
 
 const config = loadConfig();
 
@@ -29,11 +30,13 @@ app.use(
 );
 
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
+app.use(dashboardRouter());
 app.use(schedulesRouter(store));
 app.use(webhookRouter({ store, github, webhookSecret: config.webhookSecret }));
 
 app.listen(config.port, () => {
   console.log(`PRShift listening on port ${config.port}`);
+  console.log(`Open http://localhost:${config.port} to schedule a merge.`);
 });
 
 scheduler.start(config.pollIntervalMs);
