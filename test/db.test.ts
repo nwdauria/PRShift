@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ScheduleStore } from "../src/db.js";
@@ -80,4 +80,23 @@ test("handles many concurrent creates without losing writes", async () => {
     assert.equal(all.length, 25);
     assert.equal(new Set(all.map((s) => s.id)).size, 25);
   });
+});
+
+test("keeps a .bak copy of the previous generation on every write", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "prshift-"));
+  const path = join(dir, "schedules.json");
+  try {
+    const store = new ScheduleStore(path);
+    const first = await store.create({ owner: "a", repo: "b", pullNumber: 1, scheduledAt: "2026-01-01T00:00:00Z", requestedBy: "u" });
+    // After the very first write there's nothing prior to back up yet.
+    await assert.rejects(readFile(`${path}.bak`));
+
+    await store.create({ owner: "a", repo: "b", pullNumber: 2, scheduledAt: "2026-01-01T00:00:00Z", requestedBy: "u" });
+
+    const backup = JSON.parse(await readFile(`${path}.bak`, "utf8"));
+    assert.equal(backup.length, 1);
+    assert.equal(backup[0].id, first.id);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });

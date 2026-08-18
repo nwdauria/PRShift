@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { CreateScheduleInput, Schedule, ScheduleStatus } from "./types.js";
 
@@ -28,6 +28,13 @@ export class ScheduleStore {
 
   async #save(schedules: Schedule[]): Promise<void> {
     await mkdir(dirname(this.#path), { recursive: true });
+    // Keep one prior generation on disk before overwriting, so a bad write
+    // (or a bug that corrupts state) never destroys the only copy of history.
+    try {
+      await copyFile(this.#path, `${this.#path}.bak`);
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    }
     const tmpPath = `${this.#path}.tmp-${randomUUID()}`;
     await writeFile(tmpPath, JSON.stringify(schedules, null, 2));
     await rename(tmpPath, this.#path);

@@ -39,11 +39,11 @@ below if you want it to survive closing the terminal.
    - PR was closed or already merged in the meantime → the schedule is
      marked `cancelled`/`merged` accordingly.
 
-## Keeping it running in the background
+## Keeping it running in the background (recommended)
 
-Because merges only happen while the process is alive, for anything beyond
-a quick test it's worth running PRShift under a process manager so it
-survives closing your terminal and restarts if it ever crashes:
+Merges only happen while the process is alive, so beyond a quick test, run
+PRShift under `pm2` so it survives closing your terminal and restarts
+automatically if it ever crashes:
 
 ```bash
 npm install -g pm2
@@ -54,6 +54,22 @@ pm2 startup             # (optional) prints a command to auto-start on login
 ```
 
 Check on it any time with `pm2 logs prshift` or `pm2 status`.
+
+## Reliability features
+
+- **Loopback-only by default** (`HOST=127.0.0.1`) — the server isn't
+  reachable from other devices on your network, which matters since there's
+  no login/auth on the dashboard or API.
+- **Automatic retry with backoff** on GitHub API calls for transient
+  failures (rate limits, 5xx, network errors); permanent failures like an
+  invalid token fail fast instead of retrying uselessly.
+- **Startup token check** — logs and desktop-notifies immediately if
+  `GITHUB_TOKEN` is missing/invalid/expired, instead of failing silently at
+  merge time.
+- **Desktop notifications** on merge success, blocked, or failed.
+- **File logging** at `LOG_PATH` (default `./data/prshift.log`), rotated at 5MB.
+- **One-generation backup** of the schedule store (`schedules.json.bak`)
+  written before every save.
 
 ## PR comment commands (requires a deployed instance)
 

@@ -49,9 +49,11 @@ async function main() {
 
   const envContents = [
     `PORT=${port}`,
+    `HOST=127.0.0.1`,
     `GITHUB_TOKEN=${token}`,
     `GITHUB_WEBHOOK_SECRET=`,
     `DB_PATH=./data/schedules.json`,
+    `LOG_PATH=./data/prshift.log`,
     `POLL_INTERVAL_MS=60000`,
     "",
   ].join("\n");
