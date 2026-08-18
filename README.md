@@ -5,6 +5,9 @@ ready on a testing branch and you want it merged into `main` at a specific
 date/time — PRShift watches the clock for you and merges it automatically,
 as long as the PR is still mergeable and CI is green.
 
+> New here? See [SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md) for a full
+> step-by-step walkthrough.
+
 ## Quickest way to use it (local machine, no deployment)
 
 1. `npm install`
