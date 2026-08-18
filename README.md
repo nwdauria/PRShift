@@ -50,7 +50,7 @@ npm install -g pm2
 npm run build
 pm2 start dist/index.js --name prshift
 pm2 save                # remembers it across reboots
-pm2 startup             # (optional) prints a command to auto-start on login
+pm2 startup             # macOS only — auto-starts on login (see SETUP_INSTRUCTIONS.md for the Windows equivalent via Task Scheduler)
 ```
 
 Check on it any time with `pm2 logs prshift` or `pm2 status`.

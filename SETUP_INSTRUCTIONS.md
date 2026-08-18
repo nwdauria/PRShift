@@ -3,12 +3,20 @@
 Follow these steps in order. This runs entirely on your own computer —
 nothing is deployed to the cloud.
 
+This works the same way on **macOS and Windows** — every command below is
+run the same way in Terminal (Mac) or PowerShell/Command Prompt (Windows).
+Any place the two differ is called out explicitly.
+
 ## What you'll need
 
-- [Node.js](https://nodejs.org) installed (version 20 or newer). Check with:
+- [Node.js](https://nodejs.org) installed (version 20 or newer) — the
+  Windows installer and the Mac installer are both on that page. Check with:
   ```bash
   node --version
   ```
+- [Git](https://git-scm.com/downloads) (Windows: this also gives you "Git
+  Bash," a terminal that works exactly like the Mac instructions below —
+  handy if PowerShell feels unfamiliar).
 - A GitHub account with access to the repo(s) you want to schedule merges on.
 
 ## Step 1: Get the code
@@ -122,12 +130,25 @@ Useful commands:
 - `pm2 stop prshift` — stop it
 
 **Optional — start automatically when you log in:**
+
+On **macOS**:
 ```bash
 pm2 startup
 ```
 This prints a one-line command specific to your machine; copy and run it,
 then `pm2 save` again. Now PRShift comes back up automatically even after a
 restart.
+
+On **Windows**, `pm2 startup` isn't supported the same way (it targets
+Linux/macOS init systems). Instead:
+1. Open **Task Scheduler** → Create Basic Task
+2. Trigger: **When I log on**
+3. Action: **Start a program** → Program: `pm2`, Arguments: `resurrect`
+
+That replays whatever `pm2 save` last recorded, so PRShift comes back after
+a reboot the same way. If you'd rather skip this, just run
+`pm2 start dist/index.js --name prshift` again after any restart — it takes
+a few seconds.
 
 ## What happens behind the scenes
 
@@ -136,7 +157,8 @@ A few things run automatically so you don't have to think about them:
 - **Desktop notifications** — you'll get a system notification when a
   scheduled merge succeeds, gets blocked (merge conflicts / failing
   checks), or fails outright, so you don't need to keep checking the
-  dashboard.
+  dashboard. This uses each OS's own notification system (Notification
+  Center on Mac, a toast/balloon on Windows) — no extra software to install.
 - **Activity log** — everything is also written to `data/prshift.log`
   (viewable any time, even without `pm2`), which rotates automatically so
   it never grows unbounded.
