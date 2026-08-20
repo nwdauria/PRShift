@@ -15,6 +15,8 @@ export interface Schedule {
   /** ISO-8601 timestamp of when the merge should be attempted. */
   scheduledAt: string;
   mergeMethod: MergeMethod;
+  /** When true, the scheduler merges regardless of CI check status; only a merge conflict blocks it. */
+  forceMerge: boolean;
   status: ScheduleStatus;
   requestedBy: string;
   createdAt: string;
@@ -32,5 +34,6 @@ export interface CreateScheduleInput {
   pullNumber: number;
   scheduledAt: string;
   mergeMethod?: MergeMethod;
+  forceMerge?: boolean;
   requestedBy: string;
 }
