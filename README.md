@@ -55,6 +55,18 @@ pm2 startup             # macOS only — auto-starts on login (see SETUP_INSTRUC
 
 Check on it any time with `pm2 logs prshift` or `pm2 status`.
 
+To stop the background service:
+
+```bash
+pm2 stop prshift      # stop it (keeps it registered, so it won't auto-restart on crash/reboot)
+pm2 delete prshift     # stop it and remove it from pm2's process list entirely
+```
+
+If you ran `pm2 startup` to auto-start on login, also run `pm2 unstartup`
+(macOS) to remove that startup hook — otherwise pm2 itself will still launch
+on the next login (see SETUP_INSTRUCTIONS.md for the Windows equivalent via
+Task Scheduler).
+
 ## Reliability features
 
 - **Loopback-only by default** (`HOST=127.0.0.1`) — the server isn't
