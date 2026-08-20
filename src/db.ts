@@ -63,6 +63,7 @@ export class ScheduleStore {
         pullNumber: input.pullNumber,
         scheduledAt: input.scheduledAt,
         mergeMethod: input.mergeMethod ?? "merge",
+        forceMerge: input.forceMerge ?? false,
         status: "pending",
         requestedBy: input.requestedBy,
         createdAt: now,

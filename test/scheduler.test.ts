@@ -148,6 +148,73 @@ test("cancels a schedule if the PR was closed without merging", async () => {
   });
 });
 
+test("force-merges a due schedule even when checks are failing", async () => {
+  await withStore(async (store) => {
+    const schedule = await store.create({
+      owner: "a",
+      repo: "b",
+      pullNumber: 1,
+      scheduledAt: "2020-01-01T00:00:00Z",
+      requestedBy: "u",
+      forceMerge: true,
+    });
+    const github = new FakeGitHub();
+    github.checksState = { allPassing: false, pending: false, summary: "1 failing" };
+    const scheduler = new Scheduler(store, github as never);
+
+    await scheduler.runOnce(new Date("2025-01-01T00:00:00Z"));
+
+    const updated = await store.get(schedule.id);
+    assert.equal(updated?.status, "merged");
+    assert.equal(github.mergeCalls, 1);
+    assert.ok(github.comments[0].includes("force merge"));
+  });
+});
+
+test("force-merges a due schedule even while checks are still pending", async () => {
+  await withStore(async (store) => {
+    const schedule = await store.create({
+      owner: "a",
+      repo: "b",
+      pullNumber: 1,
+      scheduledAt: "2020-01-01T00:00:00Z",
+      requestedBy: "u",
+      forceMerge: true,
+    });
+    const github = new FakeGitHub();
+    github.checksState = { allPassing: false, pending: true, summary: "running" };
+    const scheduler = new Scheduler(store, github as never);
+
+    await scheduler.runOnce(new Date("2025-01-01T00:00:00Z"));
+
+    const updated = await store.get(schedule.id);
+    assert.equal(updated?.status, "merged");
+    assert.equal(github.mergeCalls, 1);
+  });
+});
+
+test("still blocks a force-merge schedule when the PR has merge conflicts", async () => {
+  await withStore(async (store) => {
+    const schedule = await store.create({
+      owner: "a",
+      repo: "b",
+      pullNumber: 1,
+      scheduledAt: "2020-01-01T00:00:00Z",
+      requestedBy: "u",
+      forceMerge: true,
+    });
+    const github = new FakeGitHub();
+    github.prState = { open: true, merged: false, mergeable: false, mergeableState: "dirty" };
+    const scheduler = new Scheduler(store, github as never);
+
+    await scheduler.runOnce(new Date("2025-01-01T00:00:00Z"));
+
+    const updated = await store.get(schedule.id);
+    assert.equal(updated?.status, "blocked");
+    assert.equal(github.mergeCalls, 0);
+  });
+});
+
 test("ignores schedules that are not yet due", async () => {
   await withStore(async (store) => {
     const schedule = await store.create({

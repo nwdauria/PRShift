@@ -76,6 +76,11 @@ const DASHBOARD_HTML = `<!doctype html>
         <option value="rebase">Rebase</option>
       </select>
     </label>
+    <label style="display: flex; flex-direction: row; align-items: center; gap: 0.5rem;">
+      <input id="forceMerge" type="checkbox" style="width: auto;" />
+      <span>Force merge (ignore CI checks)</span>
+    </label>
+    <span class="hint">Merges at the scheduled time even if checks are failing or still running. A merge conflict is the only thing that will still block it.</span>
     <button type="submit">Schedule merge</button>
     <div id="message"></div>
   </form>
@@ -162,7 +167,7 @@ const DASHBOARD_HTML = `<!doctype html>
       schedules.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       rows.innerHTML = schedules.map(s => \`
         <tr>
-          <td><a href="https://github.com/\${s.owner}/\${s.repo}/pull/\${s.pullNumber}" target="_blank">\${s.owner}/\${s.repo}#\${s.pullNumber}</a></td>
+          <td><a href="https://github.com/\${s.owner}/\${s.repo}/pull/\${s.pullNumber}" target="_blank">\${s.owner}/\${s.repo}#\${s.pullNumber}</a>\${s.forceMerge ? ' <span class="hint" title="Merges even if CI checks are failing">⚡force</span>' : ''}</td>
           <td>\${formatInZone(s.scheduledAt, timezoneSelect.value)}</td>
           <td><span class="status status-\${s.status}">\${s.status}</span></td>
           <td>\${s.note ?? ''}</td>
@@ -198,6 +203,7 @@ const DASHBOARD_HTML = `<!doctype html>
         pullNumber: parsed.pullNumber,
         scheduledAt: zonedTimeToUtc(scheduledAtLocal, timezoneSelect.value).toISOString(),
         mergeMethod: document.getElementById('mergeMethod').value,
+        forceMerge: document.getElementById('forceMerge').checked,
         requestedBy: document.getElementById('requestedBy').value.trim(),
       };
 

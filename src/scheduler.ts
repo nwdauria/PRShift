@@ -26,7 +26,9 @@ const consoleLogger: SchedulerLogger = {
  * A schedule is only merged when the PR is still open, has no merge
  * conflicts, and all CI checks have completed successfully; otherwise it's
  * left pending (checks still running) or marked "blocked" (checks failed /
- * PR unmergeable) and a comment is posted explaining why.
+ * PR unmergeable) and a comment is posted explaining why. Schedules with
+ * forceMerge set skip the CI check gating entirely — only a merge conflict
+ * can still block them.
  */
 export class Scheduler {
   #store: ScheduleStore;
@@ -90,27 +92,29 @@ export class Scheduler {
         return;
       }
 
-      const headSha = await this.#github.getPullRequestHeadSha(owner, repo, pullNumber);
-      const checks = await this.#github.getChecksState(owner, repo, headSha);
+      if (!schedule.forceMerge) {
+        const headSha = await this.#github.getPullRequestHeadSha(owner, repo, pullNumber);
+        const checks = await this.#github.getChecksState(owner, repo, headSha);
 
-      if (checks.pending) {
-        // Not yet ready; leave pending and retry on the next tick.
-        this.#log.info(`${prLabel}: checks still running, will retry`);
-        return;
-      }
+        if (checks.pending) {
+          // Not yet ready; leave pending and retry on the next tick.
+          this.#log.info(`${prLabel}: checks still running, will retry`);
+          return;
+        }
 
-      if (!checks.allPassing) {
-        const note = `Scheduled merge time reached, but checks are failing (${checks.summary}).`;
-        await this.#store.update(schedule.id, { status: "blocked", note });
-        this.#log.warn(`${prLabel}: blocked — ${note}`);
-        this.#notify("PRShift: merge blocked", `${prLabel} has failing checks.`);
-        await this.#github.createComment(
-          owner,
-          repo,
-          pullNumber,
-          `⚠️ Scheduled merge time reached, but required checks are failing. The merge was not performed.`,
-        );
-        return;
+        if (!checks.allPassing) {
+          const note = `Scheduled merge time reached, but checks are failing (${checks.summary}).`;
+          await this.#store.update(schedule.id, { status: "blocked", note });
+          this.#log.warn(`${prLabel}: blocked — ${note}`);
+          this.#notify("PRShift: merge blocked", `${prLabel} has failing checks.`);
+          await this.#github.createComment(
+            owner,
+            repo,
+            pullNumber,
+            `⚠️ Scheduled merge time reached, but required checks are failing. The merge was not performed.`,
+          );
+          return;
+        }
       }
 
       const result = await this.#github.mergePullRequest(owner, repo, pullNumber, schedule.mergeMethod);
@@ -121,7 +125,13 @@ export class Scheduler {
       });
       this.#log.info(`${prLabel}: merged (${result.sha ?? "no sha"})`);
       this.#notify("PRShift: merged", `${prLabel} was merged as scheduled.`);
-      await this.#github.createComment(owner, repo, pullNumber, `✅ Merged automatically as scheduled by @${schedule.requestedBy}.`);
+      const forceNote = schedule.forceMerge ? " (force merge — CI checks were bypassed)" : "";
+      await this.#github.createComment(
+        owner,
+        repo,
+        pullNumber,
+        `✅ Merged automatically as scheduled by @${schedule.requestedBy}${forceNote}.`,
+      );
     } catch (err) {
       const message = errorMessage(err);
       const status = (err as { status?: number }).status;

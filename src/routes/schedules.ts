@@ -8,7 +8,7 @@ export function schedulesRouter(store: ScheduleStore): Router {
   const router = Router();
 
   router.post("/schedules", async (req, res) => {
-    const { owner, repo, pullNumber, scheduledAt, mergeMethod, requestedBy } = req.body ?? {};
+    const { owner, repo, pullNumber, scheduledAt, mergeMethod, forceMerge, requestedBy } = req.body ?? {};
 
     if (typeof owner !== "string" || typeof repo !== "string" || !owner || !repo) {
       return res.status(400).json({ error: "owner and repo are required strings" });
@@ -26,6 +26,9 @@ export function schedulesRouter(store: ScheduleStore): Router {
     if (mergeMethod !== undefined && !VALID_METHODS.includes(mergeMethod)) {
       return res.status(400).json({ error: `mergeMethod must be one of ${VALID_METHODS.join(", ")}` });
     }
+    if (forceMerge !== undefined && typeof forceMerge !== "boolean") {
+      return res.status(400).json({ error: "forceMerge must be a boolean" });
+    }
     if (typeof requestedBy !== "string" || !requestedBy) {
       return res.status(400).json({ error: "requestedBy is required" });
     }
@@ -36,6 +39,7 @@ export function schedulesRouter(store: ScheduleStore): Router {
       pullNumber,
       scheduledAt: parsedDate.toISOString(),
       mergeMethod,
+      forceMerge,
       requestedBy,
     });
     res.status(201).json(schedule);
